@@ -11,7 +11,7 @@
 (set-background-color "black")
 
 ;; set default font
-(set-face-attribute 'default nil :family "Inconsolata" :height 140)
+(set-face-attribute 'default nil :family "Inconsolata" :height 110)
 
 ;; set comment font properties
 (custom-set-faces
@@ -59,3 +59,72 @@
 ;; Use 4 spaces
 (setq default-tab-width 4)
 (setq tab-width 4)
++
+(server-start)
+
+(setenv "PATH" (concat "C:\\Program Files\\Git\\bin;" (getenv "PATH")))
+(setq shell-file-name "c:/Program Files/Git/bin/sh.exe")
+
+(add-to-list 'load-path
+              "~/.emacs.d/plugins")
+(require 'yasnippet-bundle)
+(require 'emacsd-tile)
+(require 'google-c-style)
+(require 'etags-select)
+(require 'browse-kill-ring)
+(browse-kill-ring-default-keybindings)
+
+(when (> emacs-major-version 21)
+  (global-set-key [C-pause] 'previous-buffer)
+  (global-set-key [M-pause] 'next-buffer))
+
++(defun etags-select-get-tag-files ()
+    "Get tag files."
+    (if etags-select-use-xemacs-etags-p
+        (buffer-tag-table-list)
+      (mapcar 'tags-expand-table-name tags-table-list)
+      (tags-table-check-computed-list)
+      tags-table-computed-list))
+
+;;binding the key
+(global-set-key "\M-?" 'etags-select-find-tag-at-point)
+(global-set-key "\M-." 'etags-select-find-tag)
+
+
+(defun jds-find-tags-file ()
+  "recursively searches each parent directory for a file named 'TAGS' and returns the
+path to that file or nil if a tags file is not found. Returns nil if the buffer is
+not visiting a file"
+  (progn
+      (defun find-tags-file-r (path)
+         "find the tags file from the parent directories"
+         (let* ((parent (file-name-directory path))
+                (possible-tags-file (concat parent "TAGS")))
+           (cond
+             ((file-exists-p possible-tags-file) (throw 'found-it possible-tags-file))
+             ((string= "/TAGS" possible-tags-file) (error "no tags file found"))
+             (t (find-tags-file-r (directory-file-name parent))))))
+
+    (if (buffer-file-name)
+        (catch 'found-it 
+          (find-tags-file-r (buffer-file-name)))
+        (error "buffer is not visiting a file"))))
+
+(defun jds-set-tags-file-path ()
+  "calls `jds-find-tags-file' to recursively search up the directory tree to find
+a file named 'TAGS'. If found, set 'tags-table-list' with that path as an argument
+otherwise raises an error."
+  (interactive)
+  (setq tags-table-list (list (jds-find-tags-file))))
+
+;; delay search the TAGS file after open the source file
+(add-hook 'emacs-startup-hook 
+	  '(lambda () (jds-set-tags-file-path)))
+
+(custom-set-variables
+  ;; custom-set-variables was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
+  ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
+ '(column-number-mode t)
+ '(show-paren-mode t))
